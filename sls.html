@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SL Design SLS AMG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Jost:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:        #C08878;  /* rose-gold — matched to car wrap */
+      --gold-pale:   #EDD8D5;
+      --black:       #0A0A0A;
+      --white:       #FFFFFF;
+      --muted:       #5E5E5E;  /* stronger for legibility */
+      --faint:       rgba(0,0,0,0.06);
+      --ff-display:  'Cormorant Garamond', Georgia, serif;
+      --ff-body:     'Jost', sans-serif;
+    }
+
+    html { scroll-behavior: auto; }
+
+    body {
+      background: var(--white);
+      color: var(--black);
+      font-family: var(--ff-body);
+      font-weight: 300;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── CURSOR ──────────────────────────────────────────────────────── */
+    * { cursor: none; }
+
+    #cursor {
+      position: fixed;
+      width: 8px; height: 8px;
+      background: var(--gold);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s ease, width 0.3s ease, height 0.3s ease, background 0.3s;
+    }
+
+    #cursor-ring {
+      position: fixed;
+      width: 36px; height: 36px;
+      border: 1px solid rgba(192,128,96,0.5);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width 0.4s ease, height 0.4s ease, border-color 0.3s;
+    }
+
+    body:has(a:hover) #cursor,
+    body:has(button:hover) #cursor { width: 16px; height: 16px; background: var(--black); }
+    body:has(a:hover) #cursor-ring,
+    body:has(button:hover) #cursor-ring { width: 56px; height: 56px; }
+
+    /* ─── NAV ─────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 500;
+      padding: 2.2rem 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: var(--ff-display);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--black);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 3.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--black);
+      text-decoration: none;
+      opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+    .nav-links a:hover { opacity: 1; }
+
+    /* ─── HERO ────────────────────────────────────────────────────────── */
+    .hero-wrapper {
+      height: 380vh;
+      position: relative;
+    }
+
+    .hero-sticky {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--white);
+    }
+
+    #heroCanvas {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 88%;
+      max-width: 1200px;
+      aspect-ratio: 1856 / 1112;
+      display: block;
+    }
+
+    .hero-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.62rem;
+      font-weight: 400;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.8rem;
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    .hero-heading {
+      font-family: var(--ff-display);
+      font-size: clamp(5rem, 11vw, 10.5rem);
+      font-weight: 300;
+      line-height: 0.9;
+      letter-spacing: -0.025em;
+      color: var(--black);
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .hero-heading em {
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    /* Scroll indicator */
+    .scroll-cue {
+      position: absolute;
+      bottom: 2.8rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+      opacity: 0;
+      z-index: 3;
+    }
+
+    .scroll-cue-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .scroll-cue-line {
+      width: 1px;
+      height: 54px;
+      background: linear-gradient(to bottom, var(--gold) 0%, transparent 100%);
+      animation: lineBreath 2.2s ease-in-out infinite;
+    }
+
+    @keyframes lineBreath {
+      0%, 100% { opacity: 0.25; }
+      50%       { opacity: 1; }
+    }
+
+    /* Frame counter */
+    .frame-counter {
+      position: absolute;
+      bottom: 2.8rem;
+      right: 4rem;
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      opacity: 0;
+      z-index: 3;
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ─── THIN RULE ───────────────────────────────────────────────────── */
+    .hairline {
+      width: 100%;
+      height: 1px;
+      background: var(--faint);
+    }
+
+    .hairline-gold {
+      width: 60px;
+      height: 1px;
+      background: var(--gold);
+      margin: 0 auto;
+    }
+
+    /* ─── STATEMENT ───────────────────────────────────────────────────── */
+    .statement {
+      padding: 11rem 4rem;
+      text-align: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 3rem;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .statement-heading {
+      font-family: var(--ff-display);
+      font-size: clamp(3rem, 6vw, 6.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      margin-bottom: 3rem;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .statement-heading em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .statement-body {
+      font-size: 0.92rem;
+      line-height: 2.15;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    /* ─── MARQUEE ─────────────────────────────────────────────────────── */
+    .marquee-wrap {
+      overflow: hidden;
+      padding: 3.5rem 0;
+      background: #C08878;
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: ticker 28s linear infinite;
+    }
+
+    .marquee-track:hover { animation-play-state: paused; }
+
+    .marquee-item {
+      font-family: var(--ff-display);
+      font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+      font-weight: 300;
+      white-space: nowrap;
+      padding: 0 2.5rem;
+      letter-spacing: 0.01em;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .marquee-sep {
+      color: rgba(255,255,255,0.45);
+      padding: 0;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ─── SPECS ───────────────────────────────────────────────────────── */
+    .specs-section {
+      padding: 10rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    .specs-left {
+      padding-right: 4rem;
+      padding-top: 2rem;
+    }
+
+    .specs-left h2 {
+      font-family: var(--ff-display);
+      font-size: clamp(2.8rem, 4.5vw, 4.5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      margin-bottom: 2rem;
+    }
+
+    .specs-left h2 em {
+      font-style: italic;
+    }
+
+    .specs-left p {
+      font-size: 0.9rem;
+      line-height: 2.15;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      max-width: 400px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem 3rem;
+    }
+
+    .stat {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .stat::before {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 1px;
+      background: var(--gold);
+      margin-bottom: 1.4rem;
+    }
+
+    .stat-val {
+      font-family: var(--ff-display);
+      font-size: 4.8rem;
+      font-weight: 600;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 0.15em;
+    }
+
+    .stat-num {
+      display: inline-block;
+    }
+
+    .stat-unit {
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--gold);
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.6rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 0.8rem;
+    }
+
+    /* ─── FEATURE SECTIONS ────────────────────────────────────────────── */
+    .feature {
+      padding: 7rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7rem;
+      align-items: center;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .feature.flip { direction: rtl; }
+    .feature.flip > * { direction: ltr; }
+
+    .feat-eyebrow {
+      display: block;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.8rem;
+    }
+
+    .feat-heading {
+      font-family: var(--ff-display);
+      font-size: clamp(2.6rem, 4vw, 4.2rem);
+      font-weight: 300;
+      line-height: 1.08;
+      margin-bottom: 1.8rem;
+    }
+
+    .feat-heading em { font-style: italic; }
+
+    .feat-body {
+      font-size: 0.9rem;
+      line-height: 2.15;
+      color: var(--muted);
+      letter-spacing: 0.025em;
+      margin-bottom: 2.8rem;
+      max-width: 440px;
+    }
+
+    .feat-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.9rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--black);
+      text-decoration: none;
+      border-bottom: 1px solid var(--gold);
+      padding-bottom: 0.4rem;
+      transition: gap 0.35s ease, color 0.3s;
+    }
+
+    .feat-link:hover { gap: 1.6rem; color: var(--gold); }
+
+    .feat-link::after {
+      content: '→';
+      font-size: 0.8rem;
+    }
+
+    .feat-img {
+      position: relative;
+      overflow: visible;
+    }
+
+    .feat-img img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .feat-img:hover img { transform: scale(1.02); }
+
+    /* Gold accent line beside image */
+    .feat-img::before {
+      content: '';
+      position: absolute;
+      left: -2rem;
+      top: 20%;
+      bottom: 20%;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+      opacity: 0.5;
+    }
+
+    .feature.flip .feat-img::before {
+      left: auto;
+      right: -2rem;
+    }
+
+    /* ─── FULL-WIDTH QUOTE ────────────────────────────────────────────── */
+    .quote-band {
+      padding: 8rem 4rem;
+      text-align: center;
+      background: #C08878;
+      position: relative;
+    }
+
+    .quote-band::before {
+      content: '"';
+      font-family: var(--ff-display);
+      font-size: 18rem;
+      color: rgba(255,255,255,0.08);
+      position: absolute;
+      top: -2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .quote-text {
+      font-family: var(--ff-display);
+      font-size: clamp(2rem, 4vw, 4rem);
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.3;
+      max-width: 900px;
+      margin: 0 auto 1.5rem;
+      position: relative;
+      color: rgba(255,255,255,0.95);
+    }
+
+    .quote-attr {
+      font-size: 0.62rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+    }
+
+    /* ─── CTA ─────────────────────────────────────────────────────────── */
+    .cta-section {
+      padding: 12rem 4rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 8%;
+      right: 8%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--faint), transparent);
+    }
+
+    .cta-heading {
+      font-family: var(--ff-display);
+      font-size: clamp(4rem, 9vw, 9.5rem);
+      font-weight: 300;
+      line-height: 0.92;
+      letter-spacing: -0.02em;
+      margin-bottom: 3rem;
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    .cta-heading em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .cta-body {
+      font-size: 0.92rem;
+      line-height: 2.15;
+      color: var(--muted);
+      max-width: 460px;
+      margin: 0 auto 4rem;
+      opacity: 0;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      position: relative;
+      padding: 1.25rem 4.5rem;
+      font-family: var(--ff-body);
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--white);
+      text-decoration: none;
+      background: var(--black);
+      overflow: hidden;
+      transition: color 0.4s;
+      opacity: 0;
+    }
+
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gold);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+    }
+
+    .cta-btn:hover::before { transform: scaleX(1); }
+    .cta-btn:hover { color: var(--white); }
+
+    .cta-btn span { position: relative; z-index: 1; }
+
+    /* ─── FOOTER ──────────────────────────────────────────────────────── */
+    footer {
+      padding: 3.5rem 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--faint);
+    }
+
+    .footer-brand {
+      font-family: var(--ff-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .footer-meta {
+      font-size: 0.6rem;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover { color: var(--gold); }
+
+    /* ─── SCROLL PROGRESS BAR ─────────────────────────────────────────── */
+    #progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(to right, var(--gold-pale), var(--gold));
+      z-index: 999;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ─── UTILS ───────────────────────────────────────────────────────── */
+    .visually-hidden {
+      position: absolute;
+      width: 1px; height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+    }
+
+    /* ─── ROSE-GOLD ACCENTS ───────────────────────────────────────────── */
+
+    /* Short rule before every section label */
+    .section-label::before,
+    .feat-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 1px;
+      background: var(--gold);
+      vertical-align: middle;
+      margin-right: 0.9rem;
+      opacity: 0.75;
+    }
+
+    /* Gold accent bar beneath statement heading */
+    .statement-heading::after {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 1px;
+      background: var(--gold);
+      margin: 2.2rem auto 0;
+      opacity: 0.6;
+    }
+
+    /* Gold accent bar beneath feature headings */
+    .feat-heading::after {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 1px;
+      background: var(--gold);
+      margin-top: 1.6rem;
+      opacity: 0.55;
+    }
+
+    /* Quote band closing rule */
+    .quote-band::after {
+      content: '';
+      display: block;
+      width: 60px;
+      height: 1px;
+      background: rgba(255,255,255,0.35);
+      margin: 2rem auto 0;
+    }
+
+    /* CTA section: rose-gold side-bar accents */
+    .cta-section::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 8%;
+      right: 8%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(192,136,120,0.25), transparent);
+    }
+
+    /* Gold glow halo beneath hero canvas */
+    #heroCanvas {
+      filter: drop-shadow(0 12px 48px rgba(192,136,120,0.12));
+    }
+
+    /* Thicker, more visible gold divider */
+    .hairline-gold {
+      width: 60px;
+      height: 1.5px;
+      background: linear-gradient(to right, var(--gold-pale), var(--gold), var(--gold-pale));
+      opacity: 0.9;
+    }
+
+    /* Rose-gold tint on stat unit numbers */
+    .stat-val {
+      letter-spacing: -0.02em;
+    }
+
+    /* Subtle rose-gold underline on nav logo */
+    .nav-logo::after {
+      content: '';
+      display: block;
+      width: 0;
+      height: 1px;
+      background: var(--gold);
+      transition: width 0.4s ease;
+      margin-top: 2px;
+    }
+    .nav-logo:hover::after { width: 100%; }
+
+    /* ─── RESPONSIVE ──────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      nav { padding: 1.8rem 2rem; }
+      .nav-links { gap: 2rem; }
+
+      .specs-section,
+      .feature,
+      .feature.flip {
+        grid-template-columns: 1fr;
+        gap: 4rem;
+        padding: 6rem 2rem;
+        direction: ltr;
+      }
+
+      .specs-left { padding-right: 0; }
+
+      .hero-heading { font-size: clamp(3.5rem, 14vw, 7rem); }
+
+      footer {
+        flex-direction: column;
+        gap: 2rem;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- Scroll progress bar -->
+  <div id="progress-bar"></div>
+
+  <!-- Hidden video source -->
+  <video id="srcVideo" src="slsvid.mp4" muted playsinline preload="auto"
+    style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;"></video>
+
+  <!-- ─── NAVIGATION ─────────────────────────────────────────────────── -->
+  <nav aria-label="Primary">
+    <a href="#" class="nav-logo">SL Design</a>
+    <ul class="nav-links">
+      <li><a href="#collection">Collection</a></li>
+      <li><a href="#performance">Performance</a></li>
+      <li><a href="#acquire">Acquire</a></li>
+    </ul>
+  </nav>
+
+  <!-- ─── HERO ──────────────────────────────────────────────────────── -->
+  <section class="hero-wrapper" aria-label="Hero">
+    <div class="hero-sticky">
+      <canvas id="heroCanvas" aria-hidden="true"></canvas>
+
+      <div class="scroll-cue" id="scrollCue">
+        <span class="scroll-cue-label">Scroll</span>
+        <div class="scroll-cue-line"></div>
+      </div>
+
+      <div class="frame-counter" id="frameCounter">001 / 241</div>
+    </div>
+  </section>
+
+  <!-- ─── STATEMENT ─────────────────────────────────────────────────── -->
+  <section class="statement" id="collection">
+    <span class="section-label" data-anim="fade-up">001 / The Machine</span>
+    <div class="hairline-gold" style="margin-bottom: 4rem; opacity: 0;" data-anim="fade"></div>
+
+    <h2 class="statement-heading" data-anim="fade-up">
+      Where <em>engineering</em><br>meets the pursuit<br>of <em>perfection</em>
+    </h2>
+
+    <p class="statement-body" data-anim="fade-up" style="transition-delay: 0.15s">
+      The SL Design Mercedes-Benz SLS AMG is not merely a car.
+      It is a declaration — of intent, of obsession, of the relentless belief
+      that nothing exists that cannot be made more extraordinary.
+    </p>
+  </section>
+
+  <div class="hairline" style="max-width: 1400px; margin: 0 auto;"></div>
+
+  <!-- ─── MARQUEE ────────────────────────────────────────────────────── -->
+  <div class="marquee-wrap" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item">SL Design</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">SLS AMG</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">631 BHP</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Matte Rose Gold</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Gullwing Doors</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Carbon Fibre</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">6.2 Litre V8</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">317 km/h</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <!-- Duplicate for seamless loop -->
+      <span class="marquee-item">SL Design</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">SLS AMG</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">631 BHP</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Matte Rose Gold</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Gullwing Doors</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">Carbon Fibre</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">6.2 Litre V8</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+      <span class="marquee-item">317 km/h</span>
+      <span class="marquee-item marquee-sep">&nbsp;·&nbsp;</span>
+    </div>
+  </div>
+
+  <!-- ─── SPECS ─────────────────────────────────────────────────────── -->
+  <section class="specs-section" id="performance">
+    <div class="specs-left">
+      <span class="section-label" data-anim="fade-up">002 / Specifications</span>
+      <h2 data-anim="fade-up">Engineered<br>beyond<br><em>limits</em></h2>
+      <p data-anim="fade-up" style="transition-delay:0.1s">
+        Every figure is the result of obsessive precision. The SL Design SLS AMG
+        does not perform — it conquers. Four numbers that tell the story of
+        a machine built without compromise.
+      </p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat" data-count="631" data-suffix="hp" data-label="Output Power"></div>
+      <div class="stat" data-count="3.7" data-suffix="s"  data-label="0 – 100 km/h"></div>
+      <div class="stat" data-count="317" data-suffix="+"  data-label="Top Speed km/h"></div>
+      <div class="stat" data-count="620" data-suffix="Nm" data-label="Peak Torque"></div>
+    </div>
+  </section>
+
+  <div class="hairline" style="max-width: 1400px; margin: 0 auto;"></div>
+
+  <!-- ─── FEATURE 1: The Form ────────────────────────────────────────── -->
+  <section class="feature" aria-label="The Form">
+    <div class="feat-copy" data-anim="slide-right">
+      <span class="feat-eyebrow">003 / The Form</span>
+      <h2 class="feat-heading">
+        A silhouette<br>carved from<br><em>intention</em>
+      </h2>
+      <p class="feat-body">
+        Matte rose gold over a SL Design wide-body kit. Carbon fibre from hood to splitter.
+        Every surface is a conversation between restraint and provocation — an aesthetic
+        statement that commands a room into silence before the engine speaks.
+      </p>
+      <a href="#acquire" class="feat-link">Enquire Now</a>
+    </div>
+
+    <div class="feat-img" data-anim="slide-left">
+      <img src="sls1.png" alt="SL Design SLS AMG — front three-quarter view" width="928" height="556">
+    </div>
+  </section>
+
+  <!-- ─── QUOTE BAND ─────────────────────────────────────────────────── -->
+  <div class="quote-band">
+    <blockquote>
+      <p class="quote-text" data-anim="fade-up">
+        "There is no such thing as a machine built to perfection — only machines
+        whose owners have not yet finished improving them."
+      </p>
+      <footer>
+        <cite class="quote-attr">SL Design Motorsport Philosophy</cite>
+      </footer>
+    </blockquote>
+  </div>
+
+  <!-- ─── FEATURE 2: The Drama ───────────────────────────────────────── -->
+  <section class="feature flip" aria-label="The Drama">
+    <div class="feat-copy" data-anim="slide-left">
+      <span class="feat-eyebrow">004 / The Drama</span>
+      <h2 class="feat-heading">
+        Theatre<br>in a single<br><em>gesture</em>
+      </h2>
+      <p class="feat-body">
+        The gullwing door does not open — it ascends. An unhurried, balletic sweep
+        that turns the act of entry into ceremony. A moment engineered to arrest
+        time. Few automotive gestures are more memorable. None are more final.
+      </p>
+      <a href="#acquire" class="feat-link">Schedule a Viewing</a>
+    </div>
+
+    <div class="feat-img" data-anim="slide-right">
+      <img src="sls2.png" alt="SL Design SLS AMG — gullwing doors open" width="928" height="556">
+    </div>
+  </section>
+
+  <div class="hairline" style="max-width: 1400px; margin: 0 auto;"></div>
+
+  <!-- ─── CTA ───────────────────────────────────────────────────────── -->
+  <section class="cta-section" id="acquire" aria-label="Acquisition">
+    <span class="section-label" data-anim="fade-up">005 / Acquisition</span>
+
+    <h2 class="cta-heading" data-anim="fade-up">
+      One exists.<br><em>For one</em><br>owner.
+    </h2>
+
+    <p class="cta-body" data-anim="fade-up">
+      Availability for the SL Design SLS AMG is, by its nature, extraordinarily limited.
+      Private viewings are available by arrangement. We invite serious enquiries only.
+    </p>
+
+    <a href="mailto:acquire@exceptionalmachines.com" class="cta-btn" data-anim="fade-up">
+      <span>Begin the Conversation</span>
+    </a>
+  </section>
+
+  <!-- ─── FOOTER ─────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-brand">SL Design</div>
+    <ul class="footer-links">
+      <li><a href="#collection">Collection</a></li>
+      <li><a href="#performance">Specifications</a></li>
+      <li><a href="#acquire">Contact</a></li>
+    </ul>
+    <div class="footer-meta">© 2024 · Private Dealer · By Appointment Only</div>
+  </footer>
+
+  <!-- ─── SCRIPTS ────────────────────────────────────────────────────── -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    // ─── Custom Cursor ────────────────────────────────────────────────
+    const $cursor     = document.getElementById('cursor');
+    const $cursorRing = document.getElementById('cursor-ring');
+    let cursorX = 0, cursorY = 0;
+    let ringX   = 0, ringY   = 0;
+
+    document.addEventListener('mousemove', e => {
+      cursorX = e.clientX;
+      cursorY = e.clientY;
+      gsap.set($cursor, { x: cursorX, y: cursorY });
+    });
+
+    // Lag the ring slightly for an organic feel
+    (function animRing() {
+      ringX += (cursorX - ringX) * 0.12;
+      ringY += (cursorY - ringY) * 0.12;
+      gsap.set($cursorRing, { x: ringX, y: ringY });
+      requestAnimationFrame(animRing);
+    })();
+
+    // ─── Scroll progress bar ──────────────────────────────────────────
+    const $progressBar = document.getElementById('progress-bar');
+    window.addEventListener('scroll', () => {
+      const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+      $progressBar.style.width = pct + '%';
+    }, { passive: true });
+
+    // ─── Stats markup injection ───────────────────────────────────────
+    document.querySelectorAll('.stat[data-count]').forEach(el => {
+      const count  = el.dataset.count;
+      const suffix = el.dataset.suffix;
+      const label  = el.dataset.label;
+      const isDecimal = count.includes('.');
+      const [whole, frac] = count.split('.');
+
+      el.innerHTML = `
+        <div class="stat-val">
+          <span class="stat-num" data-target="${count}">${isDecimal ? '0.0' : '0'}</span>
+          <span class="stat-unit">${suffix}</span>
+        </div>
+        <span class="stat-label">${label}</span>
+      `;
+    });
+
+    // ─── Hero Canvas + Video scroll sequence ─────────────────────────
+    const video        = document.getElementById('srcVideo');
+    const canvas       = document.getElementById('heroCanvas');
+    const ctx          = canvas.getContext('2d');
+    const heroWrapper  = document.querySelector('.hero-wrapper');
+    const heroText     = document.getElementById('heroText');
+    const scrollCue    = document.getElementById('scrollCue');
+    const frameCounter = document.getElementById('frameCounter');
+
+    const TOTAL_FRAMES   = 241;
+    const frames         = new Array(TOTAL_FRAMES).fill(null);
+    let   framesReady    = false;
+    let   extractedCount = 0;
+
+    // ── Canvas buffer: match display size × device-pixel-ratio ──────
+    function setupCanvasSize() {
+      const dpr  = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return;
+      canvas.width  = Math.round(rect.width  * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
+
+    // ── Draw a cached bitmap to canvas ───────────────────────────────
+    function drawBitmap(bitmap) {
+      if (!bitmap) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    }
+
+    // ── Thin gold loading bar shown during frame extraction ──────────
+    function drawLoadingBar(progress) {
+      const barH = Math.max(2, Math.round(canvas.height * 0.0025));
+      ctx.clearRect(0, canvas.height - barH, canvas.width, barH);
+      ctx.fillStyle = 'rgba(192,128,96,0.18)';
+      ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
+      ctx.fillStyle = 'rgba(192,128,96,0.65)';
+      ctx.fillRect(0, canvas.height - barH, Math.round(canvas.width * progress), barH);
+    }
+
+    // ── Find nearest extracted frame (for use during parallel load) ───
+    function getClosestFrame(idx) {
+      if (frames[idx]) return frames[idx];
+      for (let d = 1; d < TOTAL_FRAMES; d++) {
+        if (idx - d >= 0 && frames[idx - d]) return frames[idx - d];
+        if (idx + d < TOTAL_FRAMES && frames[idx + d]) return frames[idx + d];
+      }
+      return null;
+    }
+
+    // ── Parallel extraction: 4 video elements seek simultaneously ─────
+    const PARALLEL_COUNT = 4;
+
+    function startExtraction(duration) {
+      const chunkSize = Math.ceil(TOTAL_FRAMES / PARALLEL_COUNT);
+      let completedChunks = 0;
+
+      // Clone video element for each extra worker (browser reuses cached data)
+      const vids = [video];
+      for (let p = 1; p < PARALLEL_COUNT; p++) {
+        const v = document.createElement('video');
+        v.src = video.src;
+        v.muted = true;
+        v.preload = 'auto';
+        v.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;';
+        document.body.appendChild(v);
+        vids.push(v);
+      }
+
+      // Start each chunk once its video element is ready
+      vids.forEach((v, p) => {
+        const start = p * chunkSize;
+        const end   = Math.min(start + chunkSize, TOTAL_FRAMES);
+        let i = start;
+
+        const run = () => {
+          const onSeeked = async () => {
+            try { frames[i] = await createImageBitmap(v); } catch (_) {}
+            extractedCount++;
+
+            if (i === 0) {
+              setupCanvasSize();
+              drawBitmap(frames[0]);
+            } else {
+              const st = ScrollTrigger.getById('heroSeq');
+              if (!framesReady && st && st.progress < 0.05) {
+                drawBitmap(frames[0]);
+                drawLoadingBar(extractedCount / TOTAL_FRAMES);
+              }
+            }
+
+            i++;
+            if (i < end) {
+              v.currentTime = (i / (TOTAL_FRAMES - 1)) * duration;
+            } else {
+              v.removeEventListener('seeked', onSeeked);
+              if (p > 0) { v.pause(); v.remove(); }
+              completedChunks++;
+              if (completedChunks === PARALLEL_COUNT) {
+                framesReady = true;
+                const st = ScrollTrigger.getById('heroSeq');
+                if (st) {
+                  const idx = Math.min(Math.round(st.progress * (TOTAL_FRAMES - 1)), TOTAL_FRAMES - 1);
+                  drawBitmap(frames[idx]);
+                }
+              }
+            }
+          };
+
+          v.addEventListener('seeked', onSeeked);
+          v.currentTime = (start / (TOTAL_FRAMES - 1)) * duration;
+        };
+
+        // Chunk 0 uses the already-loading main video; others wait for metadata
+        if (p === 0) {
+          run();
+        } else {
+          v.readyState >= 1 ? run() : v.addEventListener('loadedmetadata', run, { once: true });
+        }
+      });
+    }
+
+    // ── Start once main video metadata is available ───────────────────
+    if (video.readyState >= 1) {
+      startExtraction(video.duration);
+    } else {
+      video.addEventListener('loadedmetadata', () => startExtraction(video.duration), { once: true });
+    }
+
+    // ── Rebuild canvas buffer on window resize ───────────────────────
+    const resizeObserver = new ResizeObserver(() => {
+      setupCanvasSize();
+      const st = ScrollTrigger.getById('heroSeq');
+      if (st && extractedCount > 0) {
+        const idx = Math.min(Math.round(st.progress * (TOTAL_FRAMES - 1)), TOTAL_FRAMES - 1);
+        const bitmap = framesReady ? frames[idx] : getClosestFrame(idx);
+        if (bitmap) drawBitmap(bitmap);
+      }
+    });
+    resizeObserver.observe(canvas);
+
+    // ─── Hero UI entrance ─────────────────────────────────────────────
+    const tl = gsap.timeline({ delay: 0.3 });
+    tl.to('#scrollCue',    { opacity: 1, duration: 0.8, ease: 'power2.out' })
+      .to('#frameCounter', { opacity: 1, duration: 0.8 }, '-=0.8');
+
+    // ─── Scroll-driven frame sequence (zero seek lag) ─────────────────
+    ScrollTrigger.create({
+      id: 'heroSeq',
+      trigger: heroWrapper,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate(self) {
+        // Frame counter
+        const f = Math.min(Math.round(self.progress * (TOTAL_FRAMES - 1)) + 1, TOTAL_FRAMES);
+        frameCounter.textContent = `${String(f).padStart(3, '0')} / ${TOTAL_FRAMES}`;
+
+        // Render from cache — find closest available frame during load
+        const targetIdx = Math.min(Math.round(self.progress * (TOTAL_FRAMES - 1)), TOTAL_FRAMES - 1);
+        const bitmap = framesReady ? frames[targetIdx] : getClosestFrame(targetIdx);
+        if (bitmap) drawBitmap(bitmap);
+
+        // Fade scroll cue as user scrolls in
+        gsap.set(scrollCue, { opacity: Math.max(0, 1 - self.progress * 8) });
+      }
+    });
+
+    // ─── Generic scroll-reveal ────────────────────────────────────────
+    function revealAll() {
+      document.querySelectorAll('[data-anim]').forEach(el => {
+        const anim = el.dataset.anim;
+        let from = { opacity: 0 };
+        if (anim === 'fade-up')     from = { opacity: 0, y: 40 };
+        if (anim === 'slide-right') from = { opacity: 0, x: -50 };
+        if (anim === 'slide-left')  from = { opacity: 0, x: 50 };
+        if (anim === 'fade')        from = { opacity: 0 };
+
+        const delay = parseFloat(el.style.transitionDelay) || 0;
+
+        gsap.fromTo(el, from, {
+          opacity: 1, x: 0, y: 0,
+          duration: 1.1,
+          ease: 'power3.out',
+          delay,
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 82%',
+            toggleActions: 'play none none none'
+          }
+        });
+      });
+
+      // Stats count-up
+      document.querySelectorAll('.stat-num[data-target]').forEach(el => {
+        const target    = parseFloat(el.dataset.target);
+        const isDecimal = el.dataset.target.includes('.');
+        const obj = { val: 0 };
+
+        const stat = el.closest('.stat');
+        gsap.fromTo(stat,
+          { opacity: 0, y: 35 },
+          {
+            opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+            scrollTrigger: { trigger: stat, start: 'top 85%' }
+          }
+        );
+
+        ScrollTrigger.create({
+          trigger: el,
+          start: 'top 85%',
+          once: true,
+          onEnter() {
+            gsap.to(obj, {
+              val: target,
+              duration: 2.2,
+              ease: 'power2.out',
+              onUpdate() {
+                el.textContent = isDecimal
+                  ? obj.val.toFixed(1)
+                  : Math.round(obj.val).toString();
+              }
+            });
+          }
+        });
+      });
+    }
+
+    // Run after fonts & layout settle
+    if (document.fonts) {
+      document.fonts.ready.then(revealAll);
+    } else {
+      window.addEventListener('load', revealAll);
+    }
+  </script>
+</body>
+</html>
